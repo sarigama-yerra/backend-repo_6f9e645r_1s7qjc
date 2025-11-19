@@ -1,48 +1,49 @@
 """
-Database Schemas
+Database Schemas for Spiritual Gratitude Journal
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model corresponds to one MongoDB collection (lowercased class name).
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
+from typing import Optional, List
+from datetime import date
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
     name: str = Field(..., description="Full name")
     email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    avatar_url: Optional[str] = Field(None)
+
+class Handwriting(BaseModel):
+    user_id: Optional[str] = Field(None, description="Owner user id (string)")
+    name: str = Field(..., description="Display name for handwriting style")
+    image_url: str = Field(..., description="Data URL or public URL of handwriting sample/image")
+    notes: Optional[str] = None
+
+class Template(BaseModel):
+    title: str
+    description: Optional[str] = None
+    preview_url: str = Field(..., description="Preview image URL (can be data URL or public URL)")
+    theme: str = Field(..., description="Theme name e.g. lunar, zen, sunrise")
+
+class Tier(BaseModel):
+    name: str
+    price_monthly: float
+    perks: List[str] = []
+    highlight: bool = False
 
 class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    title: str
+    kind: str = Field(..., description="ebook | audio | guide | template-pack")
+    description: Optional[str] = None
+    download_url: Optional[str] = None
+    free: bool = True
 
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class JournalEntry(BaseModel):
+    user_id: Optional[str] = None
+    date: Optional[date] = None
+    template_id: Optional[str] = None
+    handwriting_id: Optional[str] = None
+    content: Optional[str] = Field(None, description="Text content")
+    strokes_data_url: Optional[str] = Field(None, description="Canvas drawing as data URL image")
+    mood: Optional[str] = None
+    intention: Optional[str] = None

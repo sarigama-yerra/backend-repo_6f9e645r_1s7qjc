@@ -91,7 +91,7 @@ class JournalEntryIn(BaseModel):
     intention: Optional[str] = None
 
 
-# ====== Seed endpoints ======
+# ====== CRUD endpoints ======
 @app.post("/api/handwritings")
 def upload_handwriting(payload: HandwritingIn):
     _id = create_document("handwriting", payload.model_dump())
@@ -146,6 +146,121 @@ def list_entries(user_id: Optional[str] = None):
     flt = {"user_id": user_id} if user_id else {}
     docs = get_documents("journalentry", flt)
     return [{**{k: (str(v) if k == "_id" else v) for k, v in d.items()}} for d in docs]
+
+
+# ====== Seed endpoint to prefill templates/tiers/products ======
+@app.post("/api/seed")
+def seed_defaults():
+    """Insert some defaults if collections are empty (idempotent)."""
+    try:
+        # Templates
+        existing_templates = get_documents("template", limit=1)
+        created_templates = 0
+        if not existing_templates:
+            templates = [
+                {
+                    "title": "Lunar Gratitude",
+                    "description": "Moon phases • silver ink • soft navy",
+                    "theme": "lunar",
+                    "preview_url": "https://images.unsplash.com/photo-1534790566855-4cb788d389ec?q=80&w=1200&auto=format&fit=crop",
+                },
+                {
+                    "title": "Zen Garden",
+                    "description": "Muted sand • raked lines • bamboo accents",
+                    "theme": "zen",
+                    "preview_url": "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1200&auto=format&fit=crop",
+                },
+                {
+                    "title": "Sunrise Bloom",
+                    "description": "Rose gold • dawn gradient • floral corners",
+                    "theme": "sunrise",
+                    "preview_url": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1200&auto=format&fit=crop",
+                },
+            ]
+            for t in templates:
+                create_document("template", t)
+            created_templates = len(templates)
+
+        # Tiers
+        existing_tiers = get_documents("tier", limit=1)
+        created_tiers = 0
+        if not existing_tiers:
+            tiers = [
+                {
+                    "name": "Seed",
+                    "price_monthly": 0,
+                    "perks": ["3 templates", "Basic canvas writing", "Daily intention prompts"],
+                    "highlight": False,
+                },
+                {
+                    "name": "Bloom",
+                    "price_monthly": 7,
+                    "perks": ["All templates", "Custom handwriting upload", "Mood tracking", "Export as images"],
+                    "highlight": True,
+                },
+                {
+                    "name": "Ascend",
+                    "price_monthly": 19,
+                    "perks": ["Everything in Bloom", "Guided rituals", "Audio meditations", "Priority blessings"],
+                    "highlight": False,
+                },
+            ]
+            for tier in tiers:
+                create_document("tier", tier)
+            created_tiers = len(tiers)
+
+        # Products (freebies)
+        existing_products = get_documents("product", limit=1)
+        created_products = 0
+        if not existing_products:
+            products = [
+                {
+                    "title": "Digital Detox Pack",
+                    "kind": "guide",
+                    "description": "7-day phone-lite ritual with printable cards",
+                    "download_url": "#",
+                    "free": True,
+                },
+                {
+                    "title": "Manifestation Mini eBook",
+                    "kind": "ebook",
+                    "description": "Scripting, affirmations, and a 3-step night ritual",
+                    "download_url": "#",
+                    "free": True,
+                },
+                {
+                    "title": "Morning Mantra Audio",
+                    "kind": "audio",
+                    "description": "5-minute breath + blessing to start radiant",
+                    "download_url": "#",
+                    "free": True,
+                },
+                {
+                    "title": "Evening Unplug Ritual",
+                    "kind": "guide",
+                    "description": "10-minute candle + journal flow for deep rest",
+                    "download_url": "#",
+                    "free": True,
+                },
+                {
+                    "title": "Prosperity Script Pages",
+                    "kind": "template-pack",
+                    "description": "Printable abundance scripting sheets (PDF)",
+                    "download_url": "#",
+                    "free": True,
+                },
+            ]
+            for p in products:
+                create_document("product", p)
+            created_products = len(products)
+
+        return {
+            "templates_created": created_templates,
+            "tiers_created": created_tiers,
+            "products_created": created_products,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
